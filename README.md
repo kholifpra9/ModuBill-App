@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ModuBill — Starter Project
 
-## Getting Started
+Awalan project sesuai dokumen arsitektur `ModuBill-Architecture-Design.md`.
 
-First, run the development server:
+## Yang sudah disiapkan
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Next.js 15 (App Router) + TypeScript + Tailwind CSS
+- Struktur folder route: `(auth)`, `(dashboard)/templates`, `(dashboard)/transactions`,
+  `(dashboard)/history`, `(dashboard)/settings`, `invoice/share/[token]`
+- Supabase client (`lib/supabase/client.ts` untuk browser, `server.ts` untuk server,
+  termasuk service-role client khusus halaman share publik)
+- `middleware.ts` untuk refresh session Supabase otomatis
+- Skema Zod (`lib/schemas/template.ts`) untuk `columns_schema`, `document_fields`,
+  `formulas_schema` — satu sumber validasi dipakai frontend & backend
+- Math engine (`lib/math/engine.ts`) — safe evaluator berbasis `mathjs`
+  (bukan `eval()`), lengkap dengan topological sort dependency rumus
+- Migrasi SQL awal (`supabase/migrations/0001_init.sql`) — sudah termasuk
+  RLS policy dan trigger auto-default template pertama
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Langkah setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Buat project Supabase** di supabase.com.
+2. **Jalankan migrasi**: buka SQL Editor di dashboard Supabase, copy-paste isi
+   `supabase/migrations/0001_init.sql`, jalankan.
+3. **Isi environment variables**:
+   ```bash
+   cp .env.example .env.local
+   ```
+   Lalu isi `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, dan
+   `SUPABASE_SERVICE_ROLE_KEY` dari Project Settings > API di dashboard Supabase.
+4. **Install dependency**:
+   ```bash
+   npm install
+   ```
+5. **Jalankan dev server**:
+   ```bash
+   npm run dev
+   ```
+   Buka http://localhost:3000
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
