@@ -46,6 +46,9 @@ export default function SettingsPage() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-md space-y-4">
       <h1 className="text-xl font-semibold">Profil Bisnis</h1>
+        <p className="text-sm text-gray-500 mb-4">
+            Opsional — isi kalau kamu mau nama & logo bisnis muncul di template invoice/struk kamu.
+        </p>
 
       <div>
         <label className="block text-sm mb-1">Nama Bisnis</label>

@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 export const registerSchema = z.object({
-    businessName: z.string().min(2, "Nama bisnis minimal 2 karakter").max(100),
     email: z.string().email("Email tidak valid"),
     password: z.string().min(8, "Password minimal 8 karakter"),
     confirmPassword: z.string(),

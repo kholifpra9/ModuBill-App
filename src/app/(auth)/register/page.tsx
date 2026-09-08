@@ -17,7 +17,7 @@ export default function RegisterPage() {
   } = useForm<RegisterInput>({ resolver: zodResolver(registerSchema) });
 
     async function onSubmit(data: RegisterInput) {
-        const { data: signUpData, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
             email: data.email,
             password: data.password,
         });
@@ -27,27 +27,13 @@ export default function RegisterPage() {
             return;
         }
 
-        if (signUpData.user) {
-            const { error: profileError } = await supabase.from("profiles").insert({
-            id: signUpData.user.id,
-            business_name: data.businessName,
-            });
-
-            if (profileError) console.error("Gagal buat profile:", profileError);
-        }
-
-        router.push("/settings"); // sementara, sampai /templates ada
+        router.push("/");
         router.refresh();
     }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-sm mx-auto mt-16 space-y-4">
       <h1 className="text-xl font-semibold">Daftar ModuBill</h1>
-
-      <div>
-        <input {...register("businessName")} placeholder="Nama Bisnis" className="w-full border rounded p-2" />
-        {errors.businessName && <p className="text-red-500 text-sm">{errors.businessName.message}</p>}
-      </div>
 
       <div>
         <input {...register("email")} type="email" placeholder="Email" className="w-full border rounded p-2" />
