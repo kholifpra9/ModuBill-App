@@ -97,7 +97,16 @@ export const templateSchema = z
     }
   });
 
+export const createTemplateFormSchema = z.object({
+  name: z.string().min(1, "Nama template wajib diisi").max(100),
+  document_title: z.string().min(1, "Judul dokumen wajib diisi").max(100),
+  orientation: orientationEnum,
+  notes: z.string().max(500).optional(),
+  footer: z.string().max(500).optional(),
+});
+
 export type TemplateColumn = z.infer<typeof templateColumnSchema>;
 export type DocumentField = z.infer<typeof documentFieldSchema>;
 export type TemplateFormula = z.infer<typeof templateFormulaSchema>;
 export type Template = z.infer<typeof templateSchema>;
+export type CreateTemplateFormInput = z.infer<typeof createTemplateFormSchema>;
