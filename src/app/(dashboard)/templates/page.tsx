@@ -39,8 +39,14 @@ export default async function TemplatesPage() {
               </div>
               <div className="flex gap-2">
                 {!t.is_default && <SetDefaultButton templateId={t.id} />}
+                <Link href={`/templates/${t.id}/formulas`} className="text-sm border rounded px-3 py-1">
+                  Edit Rumus
+                </Link>
+                <Link href={`/templates/${t.id}/document-fields`} className="text-sm border rounded px-3 py-1">
+                  Edit Field Ringkasan
+                </Link>
                 <Link href={`/templates/${t.id}/columns`} className="text-sm border rounded px-3 py-1">
-                    Edit Kolom
+                  Edit Kolom
                 </Link>
                 <DeleteTemplateButton templateId={t.id} />
               </div>

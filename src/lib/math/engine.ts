@@ -1,24 +1,15 @@
 import { create, all } from "mathjs";
 import type { TemplateFormula } from "@/lib/schemas/template";
 
-// Instance mathjs TERBATAS — hanya fungsi aritmatika dasar + agregasi.
-// Fungsi berbahaya (import, createUnit, akses ke lingkungan JS) TIDAK di-import.
+// Instance mathjs standar. KITA TIDAK mencoba "mematikan" fungsi bawaan
+// (evaluate/parse/compile/createUnit dst) dengan override — nama-nama itu
+// adalah method ASLI di objek `math` ini sendiri, jadi menimpanya balik
+// akan merusak mathjs dari dalam (evaluate() manggil parse() secara
+// internal, saling bergantung). Keamanan dijamin dengan cara yang lebih
+// tepat di evaluateExpression() di bawah: whitelist berbasis `scope`,
+// bukan blacklist nama fungsi.
 const math = create(all, {});
 
-// Nonaktifkan fungsi-fungsi yang tidak relevan/berpotensi disalahgunakan.
-const DISABLED_FUNCTIONS = ["import", "createUnit", "evaluate", "parse", "simplify"];
-for (const fn of DISABLED_FUNCTIONS) {
-  math.import(
-    {
-      [fn]: () => {
-        throw new Error(`Fungsi "${fn}" tidak diizinkan di ModuBill formula engine`);
-      },
-    },
-    { override: true }
-  );
-}
-
-// Fungsi agregasi custom yang boleh dipakai di document_level formula.
 math.import(
   {
     SUM: (arr: number[]) => arr.reduce((a, b) => a + b, 0),
@@ -27,14 +18,40 @@ math.import(
   { override: true }
 );
 
+const AGGREGATE_FN_NAMES = new Set(["SUM", "AVG"]);
+
 /**
- * Evaluasi satu ekspresi rumus dengan scope terbatas (HANYA field_key
- * yang tersedia di baris/dokumen ini). Tidak pernah pakai eval() JS asli.
+ * Ekstrak semua identifier (nama field_key / nama fungsi) yang muncul di
+ * dalam sebuah ekspresi.
+ */
+export function extractReferencedKeys(expression: string): string[] {
+  const tokens = expression.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) ?? [];
+  return tokens.filter((t) => !AGGREGATE_FN_NAMES.has(t));
+}
+
+/**
+ * Evaluasi satu ekspresi rumus dengan scope terbatas. Tidak pernah pakai
+ * eval() JS asli.
+ *
+ * Guard keamanan: SETIAP identifier di ekspresi wajib ada sebagai key di
+ * `scope` (field_key yang benar-benar disediakan pemanggil). Kalau ada
+ * identifier yang tidak dikenal — termasuk nama fungsi mathjs apapun
+ * seperti evaluate/parse/import — ditolak DI SINI, sebelum mathjs sempat
+ * mengeksekusi apapun. Ini otomatis mem-block pemanggilan fungsi
+ * berbahaya tanpa perlu daftar blacklist nama fungsi yang rapuh.
  */
 export function evaluateExpression(
   expression: string,
   scope: Record<string, number | number[]>
 ): number {
+  const referenced = extractReferencedKeys(expression);
+  const unknown = referenced.filter((key) => !(key in scope));
+  if (unknown.length > 0) {
+    throw new Error(
+      `Ekspresi mereferensikan identifier yang tidak dikenal: ${unknown.join(", ")}`
+    );
+  }
+
   const result = math.evaluate(expression, scope);
   if (typeof result !== "number" || Number.isNaN(result)) {
     throw new Error(`Hasil evaluasi "${expression}" bukan angka valid`);
@@ -54,10 +71,6 @@ export function sortFormulasByDependency(
   const sorted: TemplateFormula[] = [];
   const visited = new Set<string>();
   const visiting = new Set<string>();
-
-  function extractReferencedKeys(expression: string): string[] {
-    return expression.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) ?? [];
-  }
 
   function visit(formula: TemplateFormula) {
     if (visited.has(formula.target_field_key)) return;

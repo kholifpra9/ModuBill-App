@@ -62,7 +62,6 @@ export function ColumnBuilderForm({
     setSaveError(null);
     setSaving(true);
 
-    // Normalisasi: display_order = index saat ini, is_calculated derive dari data_type
     const columns_schema = values.columns.map((col, index) => ({
       ...col,
       display_order: index,
@@ -72,6 +71,33 @@ export function ColumnBuilderForm({
     const parsed = z.array(templateColumnSchema).safeParse(columns_schema);
     if (!parsed.success) {
       setSaveError(parsed.error.issues[0]?.message ?? "Validasi gagal");
+      setSaving(false);
+      return;
+    }
+
+    // Cross-check ke document_fields
+    const { data: template, error: fetchError } = await supabase
+      .from("templates")
+      .select("document_fields")
+      .eq("id", templateId)
+      .single();
+
+    if (fetchError) {
+      setSaveError("Gagal memeriksa data field ringkasan. Coba lagi.");
+      setSaving(false);
+      return;
+    }
+
+    const columnKeys = parsed.data.map((c) => c.field_key);
+    const documentKeys = (template.document_fields ?? []).map(
+      (f: { field_key: string }) => f.field_key
+    );
+    const overlap = columnKeys.filter((k) => documentKeys.includes(k));
+
+    if (overlap.length > 0) {
+      setSaveError(
+        `Field_key "${overlap[0]}" bentrok dengan field ringkasan. Ini seharusnya jarang terjadi karena field_key kolom tabel auto-generate (field_1, field_2, dst) — kemungkinan ada field ringkasan berlabel serupa.`
+      );
       setSaving(false);
       return;
     }
@@ -117,7 +143,6 @@ export function ColumnBuilderForm({
                 <option value="formula_output">Formula Output (hasil rumus)</option>
               </select>
 
-              <p className="text-xs text-gray-400">Key: {field.field_key}</p>
             </div>
 
             <div className="flex flex-col gap-1">
