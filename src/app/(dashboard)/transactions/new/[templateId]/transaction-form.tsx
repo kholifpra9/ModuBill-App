@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { evaluateExpression, sortFormulasByDependency } from "@/lib/math/engine";
 import type { TemplateColumn, DocumentField, TemplateFormula } from "@/lib/schemas/template";
+import { generateInvoiceNumber } from "@/lib/utils/invoice-number";
 
 type RowValues = Record<string, string>;
 type FormValues = {
@@ -62,8 +63,15 @@ export function TransactionForm({
     // 1. Hitung rumus line_item per baris (mis. field_3 = field_1 * field_2)
     const computedRows = watchedRows.map((row) => {
       const scope: Record<string, number> = {};
+      const rawTextValues: Record<string, string> = {};
+
       for (const col of columns) {
-        if (col.data_type !== "formula_output") scope[col.field_key] = toNumber(row[col.field_key]);
+        if (col.data_type === "formula_output") continue;
+        if (col.data_type === "text") {
+          rawTextValues[col.field_key] = row[col.field_key] ?? "";
+        } else {
+          scope[col.field_key] = toNumber(row[col.field_key]);
+        }
       }
       for (const f of sortedLineFormulas) {
         try {
@@ -72,13 +80,20 @@ export function TransactionForm({
           scope[f.target_field_key] = 0;
         }
       }
-      return scope;
+      // Gabung balik: field angka (dari scope) + field text (apa adanya)
+      return { ...scope, ...rawTextValues };
     });
 
-    // 2. Kumpulkan tiap kolom jadi array — dipakai SUM()/AVG() di document_level
+    // 2. Kumpulkan tiap kolom NUMERIK jadi array — dipakai SUM()/AVG() di document_level.
+    // Kolom bertipe "text" sengaja di-skip di sini — nggak masuk akal diagregasi
+    // secara matematis, dan nyimpennya sebagai number[] bakal salah tipe data.
     const columnArrays: Record<string, number[]> = {};
     for (const col of columns) {
-      columnArrays[col.field_key] = computedRows.map((r) => r[col.field_key] ?? 0);
+      if (col.data_type === "text") continue;
+      columnArrays[col.field_key] = computedRows.map((r) => {
+        const v = r[col.field_key];
+        return typeof v === "number" ? v : 0;
+      });
     }
 
     // 3. Input dokumen (diskon, pajak, uang diterima, dst — diisi manual)
@@ -109,17 +124,23 @@ export function TransactionForm({
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSaving(false); return; }
 
-    // Snapshot struktur template APA ADANYA — biar riwayat tetap akurat
-    // meski template induknya diedit lagi nanti.
     const document_snapshot = { columns_schema: columns, document_fields: documentFields, formulas_schema: formulas };
+
+    // Gabung field ringkasan: input (diskon, uang diterima) + computed (subtotal, grand_total, dst)
+    const inputValues: Record<string, number> = Object.fromEntries(
+      inputDocFields.map((d) => [d.field_key, toNumber(values.documentInputs[d.field_key])])
+    );
+    const document_values = { ...inputValues, ...calculated.documentResults };
 
     const { data: invoice, error: invoiceError } = await supabase
       .from("invoices")
       .insert({
         user_id: user.id,
         template_id: templateId,
+        invoice_number: generateInvoiceNumber(),
         transaction_date: values.transaction_date,
-        grand_total: calculated.documentResults["grand_total"] ?? null,
+        grand_total: document_values["grand_total"] ?? null,
+        document_values,
         document_snapshot,
       })
       .select()
