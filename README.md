@@ -1,3 +1,7 @@
+<p align="left">
+  <img src="./public/modubill-logo-full.svg" alt="ModuBill" height="40" />
+</p>
+
 # ModuBill
 
 Dynamic Invoice & Receipt Generator dengan schema kustomisasi — target skala kecil (F&B, hotel kecil, split bill antar teman).
@@ -5,6 +9,10 @@ Dynamic Invoice & Receipt Generator dengan schema kustomisasi — target skala k
 Dokumen pendukung:
 - `ModuBill-Architecture-Design.md` — arsitektur & skema database awal
 - `ModuBill-PRD-Progress.md` — status implementasi terkini, spesifikasi final tiap modul, known issues
+
+## Branding
+
+Logo dikelola lewat komponen `components/ui/modubilllogo.tsx` (varian `full`, `icon`, `monochrome`) — pakai komponen ini untuk menampilkan logo di halaman manapun, jangan hardcode SVG ulang. File SVG statis (`modubill-logo-full.svg`, `modubill-icon.svg`) ada di `public/`, dipakai untuk favicon dan gambar di README ini. Detail keputusan desain logo ada di `ModuBill-Logo-PRD.md`.
 
 ## Tech Stack
 
@@ -19,44 +27,38 @@ Dokumen pendukung:
 ```
 src/
 ├── app/
+│   ├── (public)/                   # Landing page - navbar di atas, sebelum login
+│   │   ├── layout.tsx
+│   │   └── page.tsx
 │   ├── (auth)/
 │   │   ├── layout.tsx              # Redirect ke /settings kalau sudah login
-│   │   ├── login/page.tsx
-│   │   └── register/page.tsx
-│   ├── (dashboard)/
+│   │   ├── login/
+│   │   └── register/
+│   ├── (dashboard)/                 # Butuh login, sidebar di kiri
 │   │   ├── layout.tsx              # Redirect ke /login kalau belum login
-│   │   ├── settings/page.tsx       # Profil bisnis (opsional)
-│   │   ├── templates/
-│   │   │   ├── page.tsx            # List + set default + delete
-│   │   │   ├── new/page.tsx        # Create template
-│   │   │   └── [id]/
-│   │   │       ├── columns/        # Dynamic Column Builder
-│   │   │       ├── document-fields/# Document Fields Builder
-│   │   │       └── formulas/       # Formula Builder
-│   │   ├── transactions/
-│   │   │   ├── page.tsx            # Pilih template
-│   │   │   └── new/[templateId]/   # Form input + live calculation
-│   │   └── history/
-│   │       ├── page.tsx            # List (soft-delete aware)
-│   │       └── [id]/page.tsx       # Detail (baca dari document_snapshot)
-│   └── invoice/share/[token]/      # Placeholder, belum diimplementasikan
-├── lib/
-│   ├── supabase/
-│   │   ├── client.ts                # Browser client
-│   │   └── server.ts                # Server client + service-role client
-│   ├── schemas/
-│   │   ├── auth.ts                  # registerSchema, loginSchema
-│   │   ├── profile.ts                # profileSchema
-│   │   └── template.ts               # columns_schema/document_fields/formulas_schema
-│   └── math/
-│       └── engine.ts                 # Safe evaluator (whitelist-by-scope)
+│   │   ├── settings/                # Profil bisnis (opsional)
+│   │   ├── templates/                # CRUD + Column/Document Fields/Formula Builder
+│   │   ├── transactions/             # Pilih template + form input (live calculation)
+│   │   └── history/                  # List (soft-delete aware) + detail
+│   ├── invoice/share/[token]/       # Placeholder, belum diimplementasikan
+│   └── globals.css                   # CSS variables (palet warna, flat design)
 ├── components/
-│   └── logout-button.tsx
-└── middleware.ts                      # Refresh session Supabase
+│   ├── layout/                       # Navbar, Sidebar, Footer, modal konfirmasi
+│   └── ui/                           # Komponen reusable (logo, tombol, dsb)
+├── lib/
+│   ├── supabase/                     # Browser client, server client
+│   ├── schemas/                      # Zod: auth, profile, template
+│   ├── math/                         # Safe evaluator (whitelist-by-scope)
+│   └── utils/                        # Helper (mis. generate invoice number)
+└── middleware.ts                     # Refresh session Supabase
 
 supabase/migrations/
 └── 0001_init.sql
 ```
+
+> Tree lengkap sampai level file individual (untuk keperluan development
+> sehari-hari) ada di `ModuBill-PRD-Progress.md`, bukan di sini.
+
 
 ## Setup
 
@@ -83,6 +85,8 @@ supabase/migrations/
 ## Status Fitur
 
 ✅ **Selesai & teruji**: Auth (register/login/logout, route protection 2 arah), Business Profile, Template CRUD, Dynamic Column Builder, Document Fields Builder, Formula Builder (line item + document level), Math Engine (safe evaluator), Transaction Generator (live calculation), History (list + detail + soft delete).
+
+✅ **Desain & polish**: Landing Page, Auth, Templates, Transactions, History, Settings — sudah melalui tahap desain UI (flat design, palet warna konsisten lewat `globals.css`), termasuk komponen layout reusable (Navbar, Sidebar, Footer) dan modal konfirmasi untuk aksi-aksi penting (mis. logout).
 
 ⬜ **Belum dikerjakan**: PDF Generator, Thermal Print (ESC/POS), Public Share Link + QR Code.
 
