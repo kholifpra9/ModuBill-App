@@ -13,18 +13,22 @@ export default async function DashboardLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Jika belum login, tendang ke /login (PRD §2)
+   // Jika belum login, tendang ke /login (PRD §2)
   if (!user) {
     redirect("/login");
   }
 
   return (
     <div className="min-h-screen flex bg-slate-100 text-slate-900">
-      {/* 2. Komponen Sidebar (Memuat Responsive Collapsible Sidebar + Mobile Bottom Nav) */}
+      {/* Memuat Top Header Mobile, Left Sidebar Desktop, dan Bottom Nav Mobile */}
       <Sidebar />
 
-      {/* 3. Area Konten Utama Workspace (Padding bawah pb-20 disiapkan agar tidak tertutup Bottom Nav di Mobile) */}
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto pb-20 md:pb-8">
+      {/* Main Content Workspace: 
+          - pt-16 (padding-top) di mobile agar tidak tertutup Header Atas
+          - pb-20 (padding-bottom) di mobile agar tidak tertutup Bottom Nav
+          - md:pt-8 & md:pb-8 di desktop 
+      */}
+      <main className="flex-1 p-4 pt-16 pb-20 md:p-8 overflow-y-auto">
         {children}
       </main>
     </div>

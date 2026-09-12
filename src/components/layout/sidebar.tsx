@@ -51,9 +51,28 @@ export const Sidebar: React.FC = () => {
 
   return (
     <>
-      {/* ------------------------------------------------------------- */}
-      {/* 1. DESKTOP SIDEBAR (md:flex)                                  */}
-      {/* ------------------------------------------------------------- */}
+      {/* ============================================================= */}
+      {/* 1. MOBILE TOP HEADER (Tampil Hanya di Layar Mobile < 768px)   */}
+      {/* ============================================================= */}
+      <header className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 h-14 flex items-center justify-between select-none">
+        {/* Logo App di Atas HP */}
+        <Link href="/templates" className="flex items-center gap-2 cursor-pointer">
+          <ModuBillLogo variant="full" size={26} />
+        </Link>
+
+        {/* Action Logout Cepat di Header Mobile */}
+        <button
+          onClick={() => setIsLogoutModalOpen(true)}
+          className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer focus:outline-none"
+          title="Keluar Akun"
+        >
+          <LogOut size={18} />
+        </button>
+      </header>
+
+      {/* ============================================================= */}
+      {/* 2. DESKTOP SIDEBAR (Sembunyi di Mobile < 768px)               */}
+      {/* ============================================================= */}
       <aside
         className={`hidden md:flex flex-col justify-between h-screen bg-slate-50 border-r border-slate-200 sticky top-0 transition-all duration-300 select-none ${
           isCollapsed ? "w-20 p-3" : "w-64 p-4"
@@ -121,10 +140,10 @@ export const Sidebar: React.FC = () => {
         </div>
       </aside>
 
-      {/* ------------------------------------------------------------- */}
-      {/* 2. MOBILE BOTTOM NAVIGATION (Tampil Hanya di Mobile < 768px)   */}
-      {/* ------------------------------------------------------------- */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-2 flex items-center justify-around select-none shadow-lg">
+      {/* ============================================================= */}
+      {/* 3. MOBILE BOTTOM NAVIGATION (Tampil Hanya di Mobile < 768px)   */}
+      {/* ============================================================= */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 flex items-center justify-around select-none shadow-lg">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname.startsWith(item.href);
@@ -140,24 +159,13 @@ export const Sidebar: React.FC = () => {
               }`}
             >
               <Icon size={20} className={isActive ? "text-blue-600" : "text-slate-500"} />
-              <span className="text-[10px] mt-1 tracking-tight">{item.name}</span>
+              <span className="text-[10px] mt-0.5 tracking-tight">{item.name}</span>
             </Link>
           );
         })}
-
-        {/* Tombol Logout Tambahan di Mobile Bar */}
-        <button
-          onClick={() => setIsLogoutModalOpen(true)}
-          className="flex flex-col items-center justify-center py-1 px-3 rounded-lg text-red-500 hover:text-red-700 transition-colors cursor-pointer"
-        >
-          <LogOut size={20} />
-          <span className="text-[10px] mt-1 tracking-tight">Keluar</span>
-        </button>
       </div>
 
-      {/* ------------------------------------------------------------- */}
-      {/* 3. MODAL KONFIRMASI LOGOUT                                    */}
-      {/* ------------------------------------------------------------- */}
+      {/* Modal Konfirmasi Logout */}
       <LogoutConfirmModal
         isOpen={isLogoutModalOpen}
         isLoading={isLoggingOut}
