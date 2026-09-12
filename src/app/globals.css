@@ -2,6 +2,17 @@
 
 @layer base {
   :root {
+    button,
+    a,
+    [role="button"] {
+      cursor: pointer !important;
+    }
+
+    /* Mengoptimalkan kenyamanan tap pada layar sentuh mobile (PRD §3) */
+    html {
+      -webkit-tap-highlight-color: transparent;
+    }
+
     /* Primary */
     --color-primary: #2563EB;
     --color-primary-hover: #1D4ED8;

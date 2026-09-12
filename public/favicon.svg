@@ -1,0 +1,10 @@
+<svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Batang Kiri (Biru #2563EB) -->
+  <rect x="3" y="6" width="10" height="28" rx="3.5" fill="#2563EB" />
+  <!-- Batang Tengah Atas (Amber #F59E0B) -->
+  <rect x="15" y="6" width="10" height="7.5" rx="2.5" fill="#F59E0B" />
+  <!-- Batang Tengah Bawah (Biru #2563EB) -->
+  <rect x="15" y="15.5" width="10" height="18.5" rx="3.5" fill="#2563EB" />
+  <!-- Batang Kanan (Biru #2563EB) -->
+  <rect x="27" y="6" width="10" height="28" rx="3.5" fill="#2563EB" />
+</svg>

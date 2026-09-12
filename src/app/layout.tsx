@@ -1,9 +1,15 @@
-import type { Metadata } from 'next';
-import './globals.css';
+import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'ModuBill — Pembuat Struk & Invoice Fleksibel',
-  description: 'Buat struk dan invoice dengan kolom dan rumus yang bisa dikustomisasi sendiri. Mudah, cepat, dan tanpa ribet.',
+  title: "ModuBill - Pembuat Struk & Invoice Fleksibel",
+  description:
+    "Buat struk dan invoice dengan kolom dan rumus yang bisa dikustomisasi sendiri. Mudah, cepat, dan tanpa ribet.",
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
