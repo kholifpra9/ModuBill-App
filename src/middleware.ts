@@ -27,8 +27,23 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session (penting: jangan hapus, mencegah user logout tiba-tiba)
-  await supabase.auth.getUser();
+  // 1. Dapatkan data user saat ini (Refresh session)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const pathname = request.nextUrl.pathname;
+
+  // 2. Daftar rute publik & auth
+  const isAuthOrPublicRoute =
+    pathname === "/" || pathname === "/login" || pathname === "/register";
+
+  // 3. LOGIKA PROTEKSI 2 ARAH:
+  // Jika pengguna SUDAH LOGIN dan mencoba akses landing page (/) / login / register,
+  // tendang langsung ke rute dashboard utama (/templates)
+  if (user && isAuthOrPublicRoute) {
+    return NextResponse.redirect(new URL("/templates", request.url));
+  }
 
   return response;
 }

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import ModuBillLogo from "@/components/ui/modubilllogo";
+import LogoutConfirmModal from "@/components/layout/logout-confirm-modal";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -20,8 +21,10 @@ export const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  // Navigasi Utama Dashboard (PRD §4 & §7)
   const navItems = [
     { name: "Template", href: "/templates", icon: FileCode2 },
     { name: "Transaksi", href: "/transactions", icon: Receipt },
@@ -29,11 +32,14 @@ export const Sidebar: React.FC = () => {
     { name: "Pengaturan", href: "/settings", icon: Settings },
   ];
 
-  const handleLogout = async () => {
+  // Handler Konfirmasi Logout Supabase
+  const handleConfirmLogout = async () => {
     try {
       setIsLoggingOut(true);
       const supabase = createClient();
       await supabase.auth.signOut();
+      
+      setIsLogoutModalOpen(false);
       router.push("/login");
       router.refresh();
     } catch (error) {
@@ -46,7 +52,7 @@ export const Sidebar: React.FC = () => {
   return (
     <>
       {/* ------------------------------------------------------------- */}
-      {/* 1. DESKTOP SIDEBAR (Sembunyi di Mobile < 768px)               */}
+      {/* 1. DESKTOP SIDEBAR (md:flex)                                  */}
       {/* ------------------------------------------------------------- */}
       <aside
         className={`hidden md:flex flex-col justify-between h-screen bg-slate-50 border-r border-slate-200 sticky top-0 transition-all duration-300 select-none ${
@@ -102,16 +108,15 @@ export const Sidebar: React.FC = () => {
           </nav>
         </div>
 
-        {/* Logout Action */}
+        {/* Logout Action (Desktop) */}
         <div className="pt-4 border-t border-slate-200">
           <button
-            onClick={handleLogout}
-            disabled={isLoggingOut}
+            onClick={() => setIsLogoutModalOpen(true)}
             title={isCollapsed ? "Keluar" : undefined}
-            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer focus:outline-none disabled:opacity-50"
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer focus:outline-none"
           >
             <LogOut size={20} className="shrink-0" />
-            {!isCollapsed && <span>{isLoggingOut ? "Keluar..." : "Keluar"}</span>}
+            {!isCollapsed && <span>Keluar</span>}
           </button>
         </div>
       </aside>
@@ -139,7 +144,26 @@ export const Sidebar: React.FC = () => {
             </Link>
           );
         })}
+
+        {/* Tombol Logout Tambahan di Mobile Bar */}
+        <button
+          onClick={() => setIsLogoutModalOpen(true)}
+          className="flex flex-col items-center justify-center py-1 px-3 rounded-lg text-red-500 hover:text-red-700 transition-colors cursor-pointer"
+        >
+          <LogOut size={20} />
+          <span className="text-[10px] mt-1 tracking-tight">Keluar</span>
+        </button>
       </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 3. MODAL KONFIRMASI LOGOUT                                    */}
+      {/* ------------------------------------------------------------- */}
+      <LogoutConfirmModal
+        isOpen={isLogoutModalOpen}
+        isLoading={isLoggingOut}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={handleConfirmLogout}
+      />
     </>
   );
 };
