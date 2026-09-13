@@ -1,75 +1,59 @@
-"use client";
+import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
+import { SettingsForm } from "./settings-form";
+import { Building2 } from "lucide-react";
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
-import { profileSchema, type ProfileInput } from "@/lib/schemas/profile";
-import { createClient } from "@/lib/supabase/client";
+export const metadata: Metadata = {
+  title: "Pengaturan Profil Bisnis",
+};
 
-export default function SettingsPage() {
-  const supabase = createClient();
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [saved, setSaved] = useState(false);
+export default async function SettingsPage() {
+  const supabase = await createClient();
 
+  // Ambil profil bisnis user saat ini
   const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<ProfileInput>({ resolver: zodResolver(profileSchema) });
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  async function onSubmit(data: ProfileInput) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+  let initialProfile = {
+    businessName: "",
+    logoUrl: "",
+  };
 
-    let logo_url: string | undefined;
-
-    if (logoFile) {
-      const path = `${user.id}/${logoFile.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("logos")
-        .upload(path, logoFile, { upsert: true });
-
-      if (!uploadError) {
-        const { data: publicUrl } = supabase.storage.from("logos").getPublicUrl(path);
-        logo_url = publicUrl.publicUrl;
-      }
-    }
-
-    await supabase
+  if (user) {
+    const { data: profile } = await supabase
       .from("profiles")
-      .update({ business_name: data.businessName, ...(logo_url && { logo_url }) })
-      .eq("id", user.id);
+      .select("business_name, logo_url")
+      .eq("id", user.id)
+      .single();
 
-    setSaved(true);
+    if (profile) {
+      initialProfile = {
+        businessName: profile.business_name ?? "",
+        logoUrl: profile.logo_url ?? "",
+      };
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="max-w-md space-y-4">
-      <h1 className="text-xl font-semibold">Profil Bisnis</h1>
-        <p className="text-sm text-gray-500 mb-4">
-            Opsional — isi kalau kamu mau nama & logo bisnis muncul di template invoice/struk kamu.
+    <div className="max-w-2xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="pb-4 border-b border-slate-200">
+        <div className="flex items-center gap-2">
+          <Building2 size={20} className="text-blue-600" />
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Profil Bisnis
+          </h1>
+        </div>
+        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+          Atur identitas bisnis Anda yang akan muncul pada bagian kover/kop dokumen transaksi.
         </p>
-
-      <div>
-        <label className="block text-sm mb-1">Nama Bisnis</label>
-        <input {...register("businessName")} className="w-full border rounded p-2" />
-        {errors.businessName && <p className="text-red-500 text-sm">{errors.businessName.message}</p>}
       </div>
 
-      <div>
-        <label className="block text-sm mb-1">Logo Bisnis</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
-        />
+      {/* Main Settings Form Container */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+        <SettingsForm initialProfile={initialProfile} />
       </div>
-
-      <button disabled={isSubmitting} className="bg-black text-white rounded p-2 px-4">
-        {isSubmitting ? "Menyimpan..." : "Simpan"}
-      </button>
-
-      {saved && <p className="text-green-600 text-sm">Tersimpan!</p>}
-    </form>
+    </div>
   );
 }

@@ -42,7 +42,7 @@ export async function middleware(request: NextRequest) {
   // Jika pengguna SUDAH LOGIN dan mencoba akses landing page (/) / login / register,
   // tendang langsung ke rute dashboard utama (/templates)
   if (user && isAuthOrPublicRoute) {
-    return NextResponse.redirect(new URL("/templates", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return response;

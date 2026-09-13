@@ -8,6 +8,7 @@ import LogoutConfirmModal from "@/components/layout/logout-confirm-modal";
 import { createClient } from "@/lib/supabase/client";
 
 import {
+  LayoutGrid,
   FileCode2,
   Receipt,
   History,
@@ -26,6 +27,7 @@ export const Sidebar: React.FC = () => {
 
   // Navigasi Utama Dashboard (PRD §4 & §7)
   const navItems = [
+    { name: "Dashboard", href: "/dashboard", icon: LayoutGrid },
     { name: "Template", href: "/templates", icon: FileCode2 },
     { name: "Transaksi", href: "/transactions", icon: Receipt },
     { name: "Riwayat", href: "/history", icon: History },
@@ -40,7 +42,7 @@ export const Sidebar: React.FC = () => {
       await supabase.auth.signOut();
       
       setIsLogoutModalOpen(false);
-      router.push("/login");
+      router.push("/");
       router.refresh();
     } catch (error) {
       console.error("Gagal logout:", error);
@@ -56,7 +58,7 @@ export const Sidebar: React.FC = () => {
       {/* ============================================================= */}
       <header className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 h-14 flex items-center justify-between select-none">
         {/* Logo App di Atas HP */}
-        <Link href="/templates" className="flex items-center gap-2 cursor-pointer">
+        <Link href="/dashboard" className="flex items-center gap-2 cursor-pointer">
           <ModuBillLogo variant="full" size={26} />
         </Link>
 
@@ -81,7 +83,7 @@ export const Sidebar: React.FC = () => {
         <div>
           {/* Header & Logo Toggle */}
           <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200">
-            <Link href="/templates" className="flex items-center overflow-hidden cursor-pointer">
+            <Link href="/dashboard" className="flex items-center overflow-hidden cursor-pointer">
               <ModuBillLogo
                 variant={isCollapsed ? "icon" : "full"}
                 size={28}
