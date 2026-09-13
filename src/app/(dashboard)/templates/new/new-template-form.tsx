@@ -10,6 +10,7 @@ import {
   type CreateTemplateFormInput,
 } from "@/lib/schemas/template";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/toast-provider";
 
 import {
   ArrowLeft,
@@ -23,6 +24,7 @@ import {
 export function NewTemplateForm() {
   const router = useRouter();
   const supabase = createClient();
+  const toast = useToast();
 
   const {
     register,
@@ -101,6 +103,8 @@ export function NewTemplateForm() {
         setError("name", { message: error.message });
         return;
       }
+
+      toast.success("Template berhasil dibuat.");
 
       router.push("/templates");
       router.refresh();

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Trash2, AlertTriangle, X } from "lucide-react";
+import { useToast } from "@/components/ui/toast-provider";
 
 export function DeleteTemplateButton({ templateId }: { templateId: string }) {
   const router = useRouter();
@@ -11,6 +12,8 @@ export function DeleteTemplateButton({ templateId }: { templateId: string }) {
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const toast = useToast();
+  
 
   async function handleDelete() {
     try {
@@ -35,6 +38,7 @@ export function DeleteTemplateButton({ templateId }: { templateId: string }) {
       }
 
       setIsModalOpen(false);
+      toast.success("Template Sudah dihapus.");
       router.refresh();
     } catch (err) {
       console.error("Gagal menghapus template:", err);

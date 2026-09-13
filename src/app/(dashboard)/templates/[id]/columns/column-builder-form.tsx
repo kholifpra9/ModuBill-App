@@ -22,6 +22,7 @@ import {
   Calculator,
   GripVertical,
 } from "lucide-react";
+import { useToast } from "@/components/ui/toast-provider";
 
 const formSchema = z.object({
   columns: z.array(templateColumnSchema).max(MAX_COLUMNS_PER_TEMPLATE),
@@ -39,6 +40,7 @@ export function ColumnBuilderForm({
   const supabase = createClient();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const toast = useToast();
 
   // Counter untuk generate field_key internal berikutnya
   const nextFieldNumber = useRef(
@@ -131,6 +133,8 @@ export function ColumnBuilderForm({
       setSaveError(error.message);
       return;
     }
+
+    toast.success("Kolom berhasil disimpan.");
 
     router.push("/templates");
     router.refresh();

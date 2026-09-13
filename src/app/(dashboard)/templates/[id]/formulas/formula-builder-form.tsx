@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { extractReferencedKeys } from "@/lib/math/engine";
+import { useToast } from "@/components/ui/toast-provider";
 import {
   templateFormulaSchema,
   MAX_FORMULAS_PER_TEMPLATE,
@@ -422,6 +423,7 @@ export function FormulaBuilderForm({
   const supabase = createClient();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const toast = useToast();
 
   const { control, handleSubmit, setValue } = useForm<FormValues>({
     defaultValues: { formulas: initialFormulas },
@@ -494,6 +496,7 @@ export function FormulaBuilderForm({
       setSaveError(error.message);
       return;
     }
+    toast.success("Rumus berhasil disimpan.");
     router.push("/templates");
     router.refresh();
   }

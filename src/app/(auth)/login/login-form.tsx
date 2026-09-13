@@ -8,11 +8,13 @@ import Link from "next/link";
 import { loginSchema, type LoginInput } from "@/lib/schemas/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Eye, EyeOff, LogIn, AlertCircle } from "lucide-react";
+import { useToast } from "@/components/ui/toast-provider";
 
 export function LoginForm() {
   const router = useRouter();
   const supabase = createClient();
   const [showPassword, setShowPassword] = useState(false);
+  const toast = useToast();
 
   const {
     register,
@@ -28,6 +30,8 @@ export function LoginForm() {
       setError("password", { message: "Email atau password yang dimasukkan salah." });
       return;
     }
+
+    toast.success("Berhasil masuk ke akun Anda!");
 
     router.push("/");
     router.refresh(); // Penting: refresh server component agar session ter-detect

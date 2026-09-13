@@ -5,6 +5,7 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/toast-provider";
 import {
   documentFieldSchema,
   MAX_DOCUMENT_FIELDS_PER_TEMPLATE,
@@ -47,6 +48,7 @@ export function DocumentFieldsForm({
   const supabase = createClient();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const toast = useToast();
 
   const {
     control,
@@ -139,6 +141,8 @@ export function DocumentFieldsForm({
       setSaveError(error.message);
       return;
     }
+
+    toast.success("Field ringkasan berhasil disimpan.");
 
     router.push("/templates");
     router.refresh();

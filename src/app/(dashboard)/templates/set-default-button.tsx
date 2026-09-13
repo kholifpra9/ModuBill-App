@@ -4,11 +4,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Star } from "lucide-react";
+import { useToast } from "@/components/ui/toast-provider";
 
 export function SetDefaultButton({ templateId }: { templateId: string }) {
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
+  const toast = useToast();
 
   async function handleSetDefault() {
     try {
@@ -34,6 +36,7 @@ export function SetDefaultButton({ templateId }: { templateId: string }) {
       if (!error) {
         router.refresh();
       }
+      toast.info("Template berhasil dijadikan default.");
     } catch (err) {
       console.error("Gagal mengubah template default:", err);
     } finally {

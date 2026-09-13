@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { evaluateExpression, sortFormulasByDependency } from "@/lib/math/engine";
+import { useToast } from "@/components/ui/toast-provider";
 import type {
   TemplateColumn,
   DocumentField,
@@ -60,6 +61,7 @@ export function TransactionForm({
   const supabase = createClient();
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const toast = useToast();
 
   const lineFormulas = useMemo(
     () => formulas.filter((f) => f.scope === "line_item"),
@@ -225,6 +227,8 @@ export function TransactionForm({
       setSaveError(itemsError.message);
       return;
     }
+
+    toast.success("Transaksi berhasil disimpan.");
 
     router.push("/history");
     router.refresh();
