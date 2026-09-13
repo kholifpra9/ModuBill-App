@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import NextTopLoader from "nextjs-toploader"; // 👈 Import ini
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -23,6 +24,18 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body className="min-h-screen bg-white text-slate-900 antialiased selection:bg-blue-100 selection:text-blue-700">
+        {/* Progress bar warna biru ModuBill (#2563EB) saat pindah halaman */}
+        <NextTopLoader
+          color="#2563EB"
+          initialPosition={0.08}
+          crawlSpeed={200}
+          height={3}
+          crawl={true}
+          showSpinner={false}
+          easing="ease"
+          speed={200}
+          shadow="0 0 10px #2563EB,0 0 5px #2563EB"
+        />
         {children}
       </body>
     </html>
