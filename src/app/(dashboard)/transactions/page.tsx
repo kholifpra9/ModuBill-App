@@ -8,6 +8,11 @@ import {
   FileText,
   ArrowRight,
 } from "lucide-react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Transactions",
+};
 
 export default async function TransactionsPage() {
   const supabase = await createClient();

@@ -301,8 +301,9 @@ export default function LandingPage() {
       {/* =================================================================== */}
       <section className="py-16 md:py-20 bg-blue-600 text-white select-none">
         <div className="max-w-5xl mx-auto px-4 text-center space-y-6">
-          <div className="inline-flex items-center justify-center p-3 bg-blue-500/40 rounded-2xl mb-2">
-            <Receipt size={36} className="text-amber-300" />
+          
+          <div className="inline-flex items-center justify-center p-3.5 bg-white backdrop-blur-sm border border-white/20 rounded-2xl mb-2">
+            <ModuBillLogo variant="icon" size={40} />
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
@@ -316,7 +317,7 @@ export default function LandingPage() {
           <div className="pt-4 flex justify-center">
             <Link
               href="/register"
-              className="px-8 py-4 text-base font-bold text-blue-900 bg-amber-400 hover:bg-amber-300 active:bg-amber-500 rounded-xl shadow-md transition-colors focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-blue-600"
+              className="px-8 py-4 text-base font-bold text-blue-900 bg-amber-400 hover:bg-amber-300 active:bg-amber-500 rounded-xl shadow-md transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-blue-600"
             >
               Mulai Pakai ModuBill Gratis
             </Link>

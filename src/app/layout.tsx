@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ModuBill - Pembuat Struk & Invoice Fleksibel",
+  title: {
+    default: "ModuBill - Pembuat Struk & Invoice Fleksibel",
+    template: "%s - ModuBill",
+  },
   description:
     "Buat struk dan invoice dengan kolom dan rumus yang bisa dikustomisasi sendiri. Mudah, cepat, dan tanpa ribet.",
   icons: {

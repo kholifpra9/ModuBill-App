@@ -3,6 +3,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { TemplateColumn, DocumentField } from "@/lib/schemas/template";
 import { ArrowLeft, Calendar, FileText, CheckCircle2 } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Detail Riwayat",
+};
 
 export default async function HistoryDetailPage({
   params,

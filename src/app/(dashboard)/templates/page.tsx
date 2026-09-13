@@ -12,6 +12,11 @@ import {
   Printer,
   FileText,
 } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Templates",
+};
 
 export default async function TemplatesPage() {
   const supabase = await createClient();

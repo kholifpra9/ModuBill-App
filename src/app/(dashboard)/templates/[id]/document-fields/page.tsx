@@ -3,6 +3,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { DocumentFieldsForm } from "./document-fields-form";
 import { ArrowLeft, AlignLeft } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Field Ringkasan",
+};
 
 export default async function DocumentFieldsPage({
   params,

@@ -3,6 +3,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { FormulaBuilderForm } from "./formula-builder-form";
 import { ArrowLeft, Calculator } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Atur Rumus",
+};
 
 export default async function FormulasPage({
   params,

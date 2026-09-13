@@ -2,6 +2,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SoftDeleteButton } from "./soft-delete-button";
 import { History, Receipt, ChevronRight, Calendar } from "lucide-react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "History",
+};
 
 function formatCurrency(val: number): string {
   return new Intl.NumberFormat("id-ID", {

@@ -3,6 +3,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { TransactionForm } from "./transaction-form";
 import { ArrowLeft, Receipt } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Tambah Transaksi",
+};
 
 export default async function NewTransactionPage({
   params,

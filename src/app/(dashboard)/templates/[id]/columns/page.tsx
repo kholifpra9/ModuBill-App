@@ -3,6 +3,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ColumnBuilderForm } from "./column-builder-form";
 import { ArrowLeft, LayoutGrid } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Atur Kolom",
+};
 
 export default async function ColumnsPage({
   params,
