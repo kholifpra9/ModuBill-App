@@ -19,7 +19,7 @@ export default async function NewTransactionPage({
 
   const { data: template, error } = await supabase
     .from("templates")
-    .select("id, name, document_title, columns_schema, document_fields, formulas_schema")
+    .select("id, name, document_title, notes, footer, columns_schema, document_fields, formulas_schema")
     .eq("id", templateId)
     .single();
 
@@ -55,9 +55,12 @@ export default async function NewTransactionPage({
       <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm">
         <TransactionForm
           templateId={template.id}
-          columns={template.columns_schema ?? []}
-          documentFields={template.document_fields ?? []}
-          formulas={template.formulas_schema ?? []}
+          documentTitle={template.document_title}
+          notes={template.notes}
+          footer={template.footer}
+          columns={template.columns_schema}
+          documentFields={template.document_fields}
+          formulas={template.formulas_schema}
         />
       </div>
 

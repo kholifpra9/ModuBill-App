@@ -48,11 +48,17 @@ function formatCurrency(val: number): string {
 
 export function TransactionForm({
   templateId,
+  documentTitle,
+  notes,
+  footer,
   columns,
   documentFields,
   formulas,
 }: {
   templateId: string;
+  documentTitle: string;
+  notes: string | null;
+  footer: string | null;
   columns: TemplateColumn[];
   documentFields: DocumentField[];
   formulas: TemplateFormula[];
@@ -179,6 +185,9 @@ export function TransactionForm({
     }
 
     const document_snapshot = {
+      document_title: documentTitle,
+      notes,
+      footer,
       columns_schema: columns,
       document_fields: documentFields,
       formulas_schema: formulas,

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { TemplateColumn, DocumentField } from "@/lib/schemas/template";
 import { ArrowLeft, Calendar, FileText, CheckCircle2 } from "lucide-react";
 import type { Metadata } from "next";
+import { ShareInvoiceButton } from "@/components/ui/share-invoice-button";
 
 export const metadata: Metadata = {
   title: "Detail Riwayat",
@@ -65,34 +66,42 @@ export default async function HistoryDetailPage({
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Navigation Header */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/history"
-          className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
-          title="Kembali ke Riwayat"
-        >
-          <ArrowLeft size={20} />
-        </Link>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              {invoice.invoice_number ?? `#${invoice.id.slice(0, 8)}`}
-            </h1>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full">
-              <CheckCircle2 size={12} />
-              Tersimpan
-            </span>
+      <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-200">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/history"
+            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
+            title="Kembali ke Riwayat"
+          >
+            <ArrowLeft size={20} />
+          </Link>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                {invoice.invoice_number ?? `#${invoice.id.slice(0, 8)}`}
+              </h1>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full">
+                <CheckCircle2 size={12} />
+                Tersimpan
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5 flex items-center gap-1.5">
+              <Calendar size={14} className="text-slate-400" />
+              <span>
+                {new Date(invoice.transaction_date).toLocaleString("id-ID", {
+                  dateStyle: "full",
+                  timeStyle: "short",
+                })}
+              </span>
+            </p>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5 flex items-center gap-1.5">
-            <Calendar size={14} className="text-slate-400" />
-            <span>
-              {new Date(invoice.transaction_date).toLocaleString("id-ID", {
-                dateStyle: "full",
-                timeStyle: "short",
-              })}
-            </span>
-          </p>
         </div>
+
+        {/* Action Button Bagikan */}
+        <ShareInvoiceButton
+          invoiceId={invoice.id}
+          initialShareToken={invoice.share_token}
+        />
       </div>
 
       {/* Main Document Preview Card (Flat Read-Only Invoice View) */}
