@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { TemplateColumn, DocumentField } from "@/lib/schemas/template";
 import ModuBillLogo from "@/components/ui/modubilllogo";
@@ -43,6 +44,18 @@ export function PrintableInvoice({
   items: Record<string, ItemValue>[];
   documentValues: Record<string, number>;
 }) {
+  // 2. Tambahkan state untuk mengecek apakah aplikasi sudah terpasang di browser (Client)
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // 3. Jika masih di server (SSR), kembalikan null agar tidak memicu error "document is not defined"
+  if (!isMounted) {
+    return null;
+  }
+
   // Hanya dirender saat proses print dipicu browser
   return createPortal(
     <div className="hidden print:block font-sans text-slate-900 text-xs p-8 max-w-3xl mx-auto bg-white">
