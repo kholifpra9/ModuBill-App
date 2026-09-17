@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,6 +14,8 @@ import type {
   TemplateFormula,
 } from "@/lib/schemas/template";
 import { generateInvoiceNumber } from "@/lib/utils/invoice-number";
+import { PrintableInvoice } from "@/components/ui/printable-invoice";
+import { ShareInvoiceButton } from "@/components/ui/share-invoice-button";
 
 import {
   Plus,
@@ -26,6 +29,7 @@ import {
   RotateCcw,
   History,
   CheckCircle2,
+  Printer,
 } from "lucide-react";
 
 type RowValues = Record<string, string>;
@@ -70,6 +74,7 @@ export function TransactionForm({
   const supabase = createClient();
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [savedInvoice, setSavedInvoice] = useState<{ id: string; invoice_number: string; share_token: string | null; document_values: Record<string, number>; } | null>(null);
   
   // State indikator jika transaksi baru saja berhasil disimpan
   const [isSavedSuccess, setIsSavedSuccess] = useState(false);
@@ -289,7 +294,28 @@ export function TransactionForm({
     
     // Tanda bahwa transaksi sudah tersimpan, Form TETAP di Halaman Ini
     setIsSavedSuccess(true);
+
+    setSavedInvoice({
+      id: invoice.id,
+      invoice_number: invoice.invoice_number,
+      share_token: invoice.share_token ?? null,
+      document_values,
+    });
   }
+
+  useEffect(() => {
+    if (isSavedSuccess) {
+      // requestAnimationFrame x2 memastikan browser sudah selesai satu
+      // siklus paint penuh sebelum dialog print dibuka — mencegah race
+      // condition serupa yang baru saja terjadi.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          window.print();
+        });
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSavedSuccess]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -303,9 +329,6 @@ export function TransactionForm({
               <p className="text-xs sm:text-sm font-bold">
                 Transaksi Berhasil Disimpan!
               </p>
-              <p className="text-[11px] text-emerald-700">
-                Data tersimpan ke riwayat. Anda dapat melanjutkan membuat transaksi baru atau berpindah ke riwayat.
-              </p>
             </div>
           </div>
           <button
@@ -316,7 +339,36 @@ export function TransactionForm({
             <RotateCcw size={14} />
             <span>Buat Transaksi Baru</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-800 bg-blue-100 hover:bg-blue-200 border border-blue-300 rounded-xl transition-colors cursor-pointer shrink-0"
+          >
+            <Printer size={14} />
+            <span>Cetak</span>
+          </button>
+
+          {savedInvoice && (
+            <ShareInvoiceButton invoiceId={savedInvoice.id} initialShareToken={savedInvoice.share_token} />
+          )}
         </div>
+
+        
+      )}
+
+      {isSavedSuccess && savedInvoice && (
+        <PrintableInvoice
+          invoiceNumber={savedInvoice.invoice_number}
+          transactionDate={watch("transaction_date")}
+          documentTitle={documentTitle}
+          notes={notes}
+          footer={footer}
+          columns={columns}
+          documentFields={documentFields}
+          items={calculated.computedRows}
+          documentValues={savedInvoice.document_values}
+        />
       )}
 
       {/* 1. Tanggal Transaksi Section */}

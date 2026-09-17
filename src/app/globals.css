@@ -64,3 +64,12 @@
 .flat-input:focus {
   border-color: var(--color-primary);
 }
+
+@media print {
+  #app-root {
+    display: none !important;
+  }
+  @page {
+    margin: 0;
+  }
+}
