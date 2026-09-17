@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -30,6 +29,7 @@ import {
   History,
   CheckCircle2,
   Printer,
+  ArrowRight,
 } from "lucide-react";
 
 type RowValues = Record<string, string>;
@@ -44,7 +44,7 @@ function toNumber(v: string | undefined): number {
   return Number.isNaN(n) ? 0 : n;
 }
 
-// Helper Formatting Rupiah (PRD §6.8)
+// Helper Formatting Rupiah
 function formatCurrency(val: number): string {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -74,11 +74,15 @@ export function TransactionForm({
   const supabase = createClient();
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [savedInvoice, setSavedInvoice] = useState<{ id: string; invoice_number: string; share_token: string | null; document_values: Record<string, number>; } | null>(null);
-  
+  const [savedInvoice, setSavedInvoice] = useState<{
+    id: string;
+    invoice_number: string;
+    share_token: string | null;
+    document_values: Record<string, number>;
+  } | null>(null);
+
   // State indikator jika transaksi baru saja berhasil disimpan
   const [isSavedSuccess, setIsSavedSuccess] = useState(false);
-  
   const toast = useToast();
 
   const lineFormulas = useMemo(
@@ -195,6 +199,7 @@ export function TransactionForm({
       ),
     });
     setIsSavedSuccess(false);
+    setSavedInvoice(null);
     setSaveError(null);
     toast.success("Form dibersihkan. Siap untuk transaksi baru!");
   }
@@ -291,10 +296,9 @@ export function TransactionForm({
     }
 
     toast.success("Transaksi berhasil disimpan.");
-    
+
     // Tanda bahwa transaksi sudah tersimpan, Form TETAP di Halaman Ini
     setIsSavedSuccess(true);
-
     setSavedInvoice({
       id: invoice.id,
       invoice_number: invoice.invoice_number,
@@ -320,43 +324,65 @@ export function TransactionForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       
-      {/* Banner Notifikasi Transaksi Berhasil Tersimpan */}
-      {isSavedSuccess && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-emerald-900 shadow-xs animate-in fade-in slide-in-from-top-2">
-          <div className="flex items-center gap-2.5">
-            <CheckCircle2 size={20} className="text-emerald-600 shrink-0" />
-            <div>
-              <p className="text-xs sm:text-sm font-bold">
-                Transaksi Berhasil Disimpan!
-              </p>
+      {/* BANNER SUKSES PENUH AKSI (Cetak, Bagikan, & Buat Baru) */}
+      {isSavedSuccess && savedInvoice && (
+        <div className="p-4 sm:p-5 bg-emerald-50/90 border border-emerald-200/90 rounded-2xl space-y-4 shadow-xs animate-in fade-in slide-in-from-top-2">
+          
+          {/* Header Status Sukses */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-emerald-200/60">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 size={22} className="text-emerald-600 shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-emerald-950">
+                  Transaksi Berhasil Disimpan!
+                </p>
+                <p className="text-xs font-mono text-emerald-700">
+                  No. Struk: {savedInvoice.invoice_number}
+                </p>
+              </div>
             </div>
+
+            {/* Badge Status */}
+            <span className="self-start sm:self-auto px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 bg-emerald-100 rounded-full border border-emerald-300">
+              Tersimpan di Riwayat
+            </span>
           </div>
-          <button
-            type="button"
-            onClick={handleResetForNewTransaction}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 rounded-xl transition-colors cursor-pointer shrink-0"
-          >
-            <RotateCcw size={14} />
-            <span>Buat Transaksi Baru</span>
-          </button>
 
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-800 bg-blue-100 hover:bg-blue-200 border border-blue-300 rounded-xl transition-colors cursor-pointer shrink-0"
-          >
-            <Printer size={14} />
-            <span>Cetak</span>
-          </button>
+          {/* Akses Cepat Tombol Cetak & Bagikan */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Tombol Cetak */}
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl transition-colors cursor-pointer shadow-xs active:scale-95"
+              >
+                <Printer size={15} className="text-blue-600" />
+                <span>Cetak</span>
+              </button>
 
-          {savedInvoice && (
-            <ShareInvoiceButton invoiceId={savedInvoice.id} initialShareToken={savedInvoice.share_token} />
-          )}
+              {/* Tombol Bagikan Link / WA */}
+              <ShareInvoiceButton
+                invoiceId={savedInvoice.id}
+                initialShareToken={savedInvoice.share_token}
+              />
+            </div>
+
+            {/* Shortcut Buat Transaksi Baru Cepat */}
+            <button
+              type="button"
+              onClick={handleResetForNewTransaction}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-emerald-900 bg-emerald-200/80 hover:bg-emerald-200 rounded-xl transition-colors cursor-pointer"
+            >
+              <RotateCcw size={14} />
+              <span>Input Transaksi Baru</span>
+            </button>
+          </div>
+
         </div>
-
-        
       )}
 
+      {/* Portal Komponen Printable Invoice untuk Dialog Print Browser */}
       {isSavedSuccess && savedInvoice && (
         <PrintableInvoice
           invoiceNumber={savedInvoice.invoice_number}
@@ -475,7 +501,6 @@ export function TransactionForm({
           </div>
         )}
 
-        {/* Button Add Row */}
         <button
           type="button"
           onClick={() => append(emptyRow())}
@@ -548,7 +573,6 @@ export function TransactionForm({
         </div>
       </div>
 
-      {/* Save Error Alert Banner */}
       {saveError && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-600">
           <AlertCircle size={16} className="shrink-0 text-red-500" />
@@ -556,11 +580,10 @@ export function TransactionForm({
         </div>
       )}
 
-      {/* Action Submit Bar Dinamis (Berubah Setelah Simpan) */}
+      {/* Action Submit Bar (Navigasi Alur Selanjutnya) */}
       <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-end gap-3">
         {isSavedSuccess ? (
           <>
-            {/* OPSI A: Tombol Reset / Buat Transaksi Baru Lagi */}
             <button
               type="button"
               onClick={handleResetForNewTransaction}
@@ -570,18 +593,16 @@ export function TransactionForm({
               <span>Buat Transaksi Lagi</span>
             </button>
 
-            {/* OPSI B: Tombol Selesai -> Pergi ke Halaman Riwayat */}
             <Link
               href="/history"
               className="px-6 py-2.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition-colors cursor-pointer flex items-center gap-2 shadow-sm"
             >
               <History size={16} />
-              <span>Selesai</span>
+              <span>Lihat Semua Riwayat</span>
             </Link>
           </>
         ) : (
           <>
-            {/* OPSI NORMAL: Batal & Simpan Transaksi */}
             <Link
               href="/transactions"
               className="px-5 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
