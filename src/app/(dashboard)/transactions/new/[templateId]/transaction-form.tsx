@@ -23,6 +23,9 @@ import {
   Calculator,
   Receipt,
   Package,
+  RotateCcw,
+  History,
+  CheckCircle2,
 } from "lucide-react";
 
 type RowValues = Record<string, string>;
@@ -67,6 +70,10 @@ export function TransactionForm({
   const supabase = createClient();
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  
+  // State indikator jika transaksi baru saja berhasil disimpan
+  const [isSavedSuccess, setIsSavedSuccess] = useState(false);
+  
   const toast = useToast();
 
   const lineFormulas = useMemo(
@@ -84,13 +91,14 @@ export function TransactionForm({
     Object.fromEntries(columns.map((c) => [c.field_key, ""]));
 
   // ISO string local datetime picker format
-  const nowISO = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 16);
+  const getNowISO = () =>
+    new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
 
-  const { control, register, handleSubmit, watch } = useForm<FormValues>({
+  const { control, register, handleSubmit, watch, reset } = useForm<FormValues>({
     defaultValues: {
-      transaction_date: nowISO,
+      transaction_date: getNowISO(),
       rows: [emptyRow()],
       documentInputs: Object.fromEntries(
         inputDocFields.map((d) => [d.field_key, ""])
@@ -172,8 +180,48 @@ export function TransactionForm({
     inputDocFields,
   ]);
 
+  // Handler untuk Mereset Form dan Menyiapkan Transaksi Baru
+  function handleResetForNewTransaction() {
+    reset({
+      transaction_date: getNowISO(),
+      rows: [emptyRow()],
+      documentInputs: Object.fromEntries(
+        inputDocFields.map((d) => [d.field_key, ""])
+      ),
+    });
+    setIsSavedSuccess(false);
+    setSaveError(null);
+    toast.success("Form dibersihkan. Siap untuk transaksi baru!");
+  }
+
   async function onSubmit(values: FormValues) {
     setSaveError(null);
+
+    // VALIDASI 1: Cek apakah tidak ada baris item sama sekali
+    if (!values.rows || values.rows.length === 0) {
+      setSaveError("Minimal tambahkan 1 baris item transaksi.");
+      toast.error("Tidak dapat menyimpan transaksi tanpa item.");
+      return;
+    }
+
+    // VALIDASI 2: Cek apakah semua baris item kosong (tidak ada input teks atau nilai > 0)
+    const hasValidItem = values.rows.some((row) =>
+      columns.some((col) => {
+        if (col.data_type === "formula_output") return false;
+        const val = row[col.field_key];
+        if (col.data_type === "text") {
+          return val && val.trim().length > 0;
+        }
+        return toNumber(val) > 0;
+      })
+    );
+
+    if (!hasValidItem) {
+      setSaveError("Silakan isi minimal 1 data item transaksi.");
+      toast.error("Data item transaksi masih kosong.");
+      return;
+    }
+
     setSaving(true);
 
     const {
@@ -238,14 +286,39 @@ export function TransactionForm({
     }
 
     toast.success("Transaksi berhasil disimpan.");
-
-    router.push("/history");
-    router.refresh();
+    
+    // Tanda bahwa transaksi sudah tersimpan, Form TETAP di Halaman Ini
+    setIsSavedSuccess(true);
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       
+      {/* Banner Notifikasi Transaksi Berhasil Tersimpan */}
+      {isSavedSuccess && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-emerald-900 shadow-xs animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 size={20} className="text-emerald-600 shrink-0" />
+            <div>
+              <p className="text-xs sm:text-sm font-bold">
+                Transaksi Berhasil Disimpan!
+              </p>
+              <p className="text-[11px] text-emerald-700">
+                Data tersimpan ke riwayat. Anda dapat melanjutkan membuat transaksi baru atau berpindah ke riwayat.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleResetForNewTransaction}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 rounded-xl transition-colors cursor-pointer shrink-0"
+          >
+            <RotateCcw size={14} />
+            <span>Buat Transaksi Baru</span>
+          </button>
+        </div>
+      )}
+
       {/* 1. Tanggal Transaksi Section */}
       <div className="space-y-1.5 max-w-xs">
         <label className="block text-xs font-semibold text-slate-700 flex items-center gap-1.5">
@@ -271,18 +344,33 @@ export function TransactionForm({
           </span>
         </div>
 
-        {/* Dynamic Item Rows */}
-        <div className="space-y-3">
-          {fields.map((field, index) => (
-            <div
-              key={field.id}
-              className="p-4 bg-slate-50/60 border border-slate-200 rounded-xl space-y-3 hover:border-slate-300 transition-colors"
+        {/* Empty State jika tidak ada baris sama sekali */}
+        {fields.length === 0 ? (
+          <div className="p-8 bg-white border border-dashed border-slate-300 rounded-2xl text-center space-y-3">
+            <p className="text-xs text-slate-500">
+              Belum ada baris item transaksi yang ditambahkan.
+            </p>
+            <button
+              type="button"
+              onClick={() => append(emptyRow())}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors cursor-pointer"
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500">
-                  Item #{index + 1}
-                </span>
-                {fields.length > 1 && (
+              <Plus size={14} />
+              <span>Tambah Baris Pertama</span>
+            </button>
+          </div>
+        ) : (
+          /* Dynamic Item Rows */
+          <div className="space-y-3">
+            {fields.map((field, index) => (
+              <div
+                key={field.id}
+                className="p-4 bg-slate-50/60 border border-slate-200 rounded-xl space-y-3 hover:border-slate-300 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-500">
+                    Item #{index + 1}
+                  </span>
                   <button
                     type="button"
                     onClick={() => remove(index)}
@@ -291,49 +379,49 @@ export function TransactionForm({
                   >
                     <Trash2 size={16} />
                   </button>
-                )}
-              </div>
+                </div>
 
-              {/* Grid Form Input Per Kolom */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                {columns.map((col) => {
-                  const isFormula = col.data_type === "formula_output";
-                  const rawVal = calculated.computedRows[index]?.[col.field_key];
-                  const numVal = typeof rawVal === "number" ? rawVal : 0;
+                {/* Grid Form Input Per Kolom */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                  {columns.map((col) => {
+                    const isFormula = col.data_type === "formula_output";
+                    const rawVal = calculated.computedRows[index]?.[col.field_key];
+                    const numVal = typeof rawVal === "number" ? rawVal : 0;
 
-                  return isFormula ? (
-                    /* Display Read-Only untuk Hasil Rumus Baris */
-                    <div key={col.field_key} className="sm:col-span-3 space-y-1">
-                      <span className="block text-[11px] font-medium text-slate-500">
-                        {col.label} (Hasil)
-                      </span>
-                      <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm font-bold text-amber-900 font-mono text-right">
-                        {col.data_type === "currency" || isFormula
-                          ? formatCurrency(numVal)
-                          : numVal.toLocaleString()}
+                    return isFormula ? (
+                      /* Display Read-Only untuk Hasil Rumus Baris */
+                      <div key={col.field_key} className="sm:col-span-3 space-y-1">
+                        <span className="block text-[11px] font-medium text-slate-500">
+                          {col.label} (Hasil)
+                        </span>
+                        <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm font-bold text-amber-900 font-mono text-right">
+                          {col.data_type === "currency" || isFormula
+                            ? formatCurrency(numVal)
+                            : numVal.toLocaleString()}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    /* Input Biasa untuk Pengguna */
-                    <div key={col.field_key} className="sm:col-span-3 space-y-1">
-                      <label className="block text-[11px] font-semibold text-slate-700 truncate">
-                        {col.label}
-                      </label>
-                      <input
-                        {...register(`rows.${index}.${col.field_key}`)}
-                        type={col.data_type === "text" ? "text" : "number"}
-                        step={col.data_type === "number" ? "any" : "1"}
-                        inputMode={col.data_type === "text" ? "text" : "decimal"}
-                        placeholder={col.data_type === "text" ? "Nama item..." : "0"}
-                        className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-white transition-colors focus:outline-none"
-                      />
-                    </div>
-                  );
-                })}
+                    ) : (
+                      /* Input Biasa untuk Pengguna */
+                      <div key={col.field_key} className="sm:col-span-3 space-y-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 truncate">
+                          {col.label}
+                        </label>
+                        <input
+                          {...register(`rows.${index}.${col.field_key}`)}
+                          type={col.data_type === "text" ? "text" : "number"}
+                          step={col.data_type === "number" ? "any" : "1"}
+                          inputMode={col.data_type === "text" ? "text" : "decimal"}
+                          placeholder={col.data_type === "text" ? "Nama item..." : "0"}
+                          className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-white transition-colors focus:outline-none"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Button Add Row */}
         <button
@@ -416,29 +504,55 @@ export function TransactionForm({
         </div>
       )}
 
-      {/* Action Submit Bar */}
-      <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
-        <Link
-          href="/transactions"
-          className="px-5 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
-        >
-          Batal
-        </Link>
+      {/* Action Submit Bar Dinamis (Berubah Setelah Simpan) */}
+      <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-end gap-3">
+        {isSavedSuccess ? (
+          <>
+            {/* OPSI A: Tombol Reset / Buat Transaksi Baru Lagi */}
+            <button
+              type="button"
+              onClick={handleResetForNewTransaction}
+              className="px-5 py-2.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-colors cursor-pointer flex items-center gap-2 shadow-xs"
+            >
+              <RotateCcw size={15} />
+              <span>Buat Transaksi Lagi</span>
+            </button>
 
-        <button
-          type="submit"
-          disabled={saving}
-          className="px-6 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center gap-2 disabled:opacity-60 shadow-sm"
-        >
-          {saving ? (
-            <span>Menyimpan...</span>
-          ) : (
-            <>
-              <Save size={16} />
-              <span>Simpan Transaksi</span>
-            </>
-          )}
-        </button>
+            {/* OPSI B: Tombol Selesai -> Pergi ke Halaman Riwayat */}
+            <Link
+              href="/history"
+              className="px-6 py-2.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition-colors cursor-pointer flex items-center gap-2 shadow-sm"
+            >
+              <History size={16} />
+              <span>Selesai</span>
+            </Link>
+          </>
+        ) : (
+          <>
+            {/* OPSI NORMAL: Batal & Simpan Transaksi */}
+            <Link
+              href="/transactions"
+              className="px-5 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+            >
+              Batal
+            </Link>
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-6 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center gap-2 disabled:opacity-60 shadow-sm"
+            >
+              {saving ? (
+                <span>Menyimpan...</span>
+              ) : (
+                <>
+                  <Save size={16} />
+                  <span>Simpan Transaksi</span>
+                </>
+              )}
+            </button>
+          </>
+        )}
       </div>
 
     </form>
