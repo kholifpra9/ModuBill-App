@@ -5,6 +5,8 @@ import type { TemplateColumn, DocumentField } from "@/lib/schemas/template";
 import { ArrowLeft, Calendar, FileText, CheckCircle2 } from "lucide-react";
 import type { Metadata } from "next";
 import { ShareInvoiceButton } from "@/components/ui/share-invoice-button";
+import { PrintButton } from "@/components/ui/print-button";
+import { PrintableInvoice } from "@/components/ui/printable-invoice";
 
 export const metadata: Metadata = {
   title: "Detail Riwayat",
@@ -29,6 +31,9 @@ export default async function HistoryDetailPage({
 
   // Membaca dari document_snapshot agar tetap akurat meski template induk berubah (PRD §5)
   const snapshot = invoice.document_snapshot as {
+    document_title?: string;
+    notes?: string;
+    footer?: string;
     columns_schema: TemplateColumn[];
     document_fields: DocumentField[];
   };
@@ -62,11 +67,25 @@ export default async function HistoryDetailPage({
     if (dataType === "percentage") return `${num}%`;
     return num.toLocaleString("id-ID");
   }
+  
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      <PrintableInvoice
+        invoiceNumber={invoice.invoice_number ?? `#${invoice.id.slice(0, 8)}`}
+        transactionDate={invoice.transaction_date}
+        documentTitle={snapshot.document_title || "Struk Transaksi"}
+        notes={snapshot.notes ?? null}
+        footer={snapshot.footer ?? null}
+        columns={snapshot.columns_schema}
+        documentFields={snapshot.document_fields}
+        items={items.map((item) => item.item_values)}
+        documentValues={documentValues}
+      />
+
       {/* Navigation Header */}
       <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-200">
+        {/* SISI KIRI: Back Button + Info Invoice */}
         <div className="flex items-center gap-3">
           <Link
             href="/history"
@@ -97,11 +116,14 @@ export default async function HistoryDetailPage({
           </div>
         </div>
 
-        {/* Action Button Bagikan */}
-        <ShareInvoiceButton
-          invoiceId={invoice.id}
-          initialShareToken={invoice.share_token}
-        />
+        {/* SISI KANAN: Pembungkus Tombol Cetak & Bagikan Berdampingan */}
+        <div className="flex items-center gap-2 shrink-0">
+          <PrintButton />
+          <ShareInvoiceButton
+            invoiceId={invoice.id}
+            initialShareToken={invoice.share_token}
+          />
+        </div>
       </div>
 
       {/* Main Document Preview Card (Flat Read-Only Invoice View) */}

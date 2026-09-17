@@ -1,12 +1,22 @@
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { SearchInput } from "@/components/ui/search-input";
+import { FilterSelect } from "@/components/ui/filter-select";
+import { Pagination } from "@/components/ui/pagination";
 import { SoftDeleteButton } from "./soft-delete-button";
-import { History, Receipt, ChevronRight, Calendar } from "lucide-react";
-import { Metadata } from "next";
+import { History, FileText, Calendar, Eye } from "lucide-react";
+import { formatTransactionDate } from "@/lib/utils/format-date";
 
-export const metadata: Metadata = {
-  title: "History",
-};
+interface HistoryPageProps {
+  searchParams: Promise<{
+    q?: string;          // Live Search Invoice Number
+    template_id?: string; // Filter Template Name
+    page?: string;        // Current Page Number
+  }>;
+}
+
+const PAGE_SIZE = 10; // Jumlah data per halaman
 
 function formatCurrency(val: number): string {
   return new Intl.NumberFormat("id-ID", {
@@ -16,126 +26,178 @@ function formatCurrency(val: number): string {
   }).format(val);
 }
 
-export default async function HistoryPage() {
-  const supabase = await createClient();
-  const { data: invoices, error } = await supabase
-    .from("invoices")
-    .select("id, invoice_number, transaction_date, grand_total, templates(name)")
-    .is("deleted_at", null)
-    .order("transaction_date", { ascending: false });
+export default async function HistoryPage({ searchParams }: HistoryPageProps) {
+  const { q, template_id, page } = await searchParams;
+  const currentPage = Math.max(1, parseInt(page ?? "1", 10));
 
-  if (error) {
-    return (
-      <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
-        Gagal memuat riwayat transaksi: {error.message}
-      </div>
-    );
+  const supabase = await createClient();
+
+  // 1. Ambil Session User
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) notFound();
+
+  // 2. Fetch Opsi Template milik user untuk Dropdown Filter
+  const { data: templates } = await supabase
+    .from("templates")
+    .select("id, name")
+    .eq("user_id", user.id)
+    .order("name", { ascending: true });
+
+  const filterOptions = (templates ?? []).map((t) => ({
+    label: t.name,
+    value: t.id,
+  }));
+
+  // 3. Construct Supabase Query untuk Table Invoices
+  let query = supabase
+    .from("invoices")
+    .select("*, templates(name)", { count: "exact" })
+    .eq("user_id", user.id)
+    .is("deleted_at", null);
+
+  // Apply Live Search (Invoice Number)
+  if (q && q.trim()) {
+    query = query.ilike("invoice_number", `%${q.trim()}%`);
   }
 
+  // Apply Filter Template ID
+  if (template_id && template_id.trim()) {
+    query = query.eq("template_id", template_id);
+  }
+
+  // Calculate Offset Pagination
+  const from = (currentPage - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  // Execute Query with Range Offset & Ordering
+  const { data: invoices, count, error } = await query
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  if (error) {
+    console.error("Error fetching history invoices:", error.message);
+  }
+
+  const totalItems = count ?? 0;
+  const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="pb-4 border-b border-slate-200">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Riwayat Transaksi
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-          Daftar seluruh dokumen struk dan invoice yang pernah tersimpan.
-        </p>
+    <div className="space-y-6 max-w-5xl mx-auto">
+      {/* Header Halaman */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <History className="text-blue-600" size={24} />
+            <span>Riwayat Transaksi</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Kelola dan lihat rincian struk/invoice yang telah diterbitkan.
+          </p>
+        </div>
       </div>
 
-      {/* Main Content Area */}
-      {invoices.length === 0 ? (
-        /* Empty State */
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center space-y-4 max-w-md mx-auto my-12 shadow-sm">
-          <div className="w-14 h-14 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mx-auto">
-            <History size={28} />
-          </div>
-          <div className="space-y-1">
-            <h2 className="text-base font-bold text-slate-900">
-              Belum Ada Transaksi
-            </h2>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Transaksi yang Anda catat akan tersimpan dan dapat dilihat kembali di halaman ini.
-            </p>
-          </div>
-          <Link
-            href="/transactions"
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors cursor-pointer"
-          >
-            <Receipt size={16} />
-            <span>Buat Transaksi Pertama</span>
-          </Link>
-        </div>
-      ) : (
-        /* List Item Riwayat */
-        <div className="bg-white border border-slate-200 rounded-2xl divide-y divide-slate-100 overflow-hidden shadow-sm">
-          {invoices.map((inv) => {
-            const templateName =
-              (inv.templates as unknown as { name: string })?.name ??
-              "Template Terhapus";
+      {/* Control Bar: Live Search & Filter Template */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-3.5 border border-slate-200 rounded-2xl">
+        {/* Live Search berdasarkan Invoice Number */}
+        <SearchInput placeholder="Cari No. Invoice (mis: INV-2026...)" />
 
-            return (
-              <div
-                key={inv.id}
-                className="flex items-center justify-between p-4 hover:bg-slate-50/70 transition-colors group"
-              >
-                {/* Information Link (Klik ke Detail) */}
-                <Link
-                  href={`/history/${inv.id}`}
-                  className="flex-1 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center cursor-pointer pr-3"
+        {/* Filter berdasarkan Template */}
+        <FilterSelect
+          options={filterOptions}
+          paramKey="template_id"
+          placeholder="Semua Template"
+        />
+      </div>
+
+      {/* Tabel/Daftar Transaksi (Sederhana Asli) */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+        {invoices && invoices.length > 0 ? (
+          <div className="divide-y divide-slate-100">
+            {invoices.map((inv) => {
+              const templateName =
+                (inv.templates as { name?: string })?.name ?? "Template Dihapus";
+
+              return (
+                <div
+                  key={inv.id}
+                  className="flex items-center justify-between p-4 hover:bg-slate-50/70 transition-colors group"
                 >
-                  {/* Nomor Invoice & Template */}
-                  <div className="sm:col-span-6 space-y-0.5">
-                    {/* Element Paling Menonjol (PRD §6.9) */}
-                    <p className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors flex items-center gap-1.5">
-                      <span>
-                        {inv.invoice_number ?? `#${inv.id.slice(0, 8)}`}
-                      </span>
-                    </p>
-                    {/* Element Terkecil (PRD §6.9) */}
-                    <p className="text-xs text-slate-400">
-                      {templateName}
-                    </p>
-                  </div>
-
-                  {/* Tanggal Transaksi */}
-                  <div className="sm:col-span-3 text-xs text-slate-500 flex items-center gap-1">
-                    <Calendar size={13} className="text-slate-400 shrink-0" />
-                    <span>
-                      {new Date(inv.transaction_date).toLocaleString("id-ID", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  </div>
-
-                  {/* Grand Total */}
-                  <div className="sm:col-span-3 sm:text-right font-mono font-bold text-slate-900 text-sm">
-                    {inv.grand_total != null
-                      ? formatCurrency(Number(inv.grand_total))
-                      : "—"}
-                  </div>
-                </Link>
-
-                {/* Right Action & Soft Delete */}
-                <div className="flex items-center gap-1 border-l border-slate-100 pl-2">
-                  <SoftDeleteButton invoiceId={inv.id} />
+                  {/* Information Link (Klik ke Detail) */}
                   <Link
                     href={`/history/${inv.id}`}
-                    className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition-colors cursor-pointer"
+                    className="flex-1 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center cursor-pointer pr-3"
                   >
-                    <ChevronRight size={18} />
+                    {/* Nomor Invoice & Template */}
+                    <div className="sm:col-span-6 space-y-0.5">
+                      {/* Element Paling Menonjol (PRD §6.9) */}
+                      <p className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors flex items-center gap-1.5">
+                        <span>
+                          {inv.invoice_number ?? `#${inv.id.slice(0, 8)}`}
+                        </span>
+                      </p>
+                      {/* Element Terkecil (PRD §6.9) */}
+                      <p className="text-xs text-slate-400">
+                        {templateName}
+                      </p>
+                    </div>
+
+                    {/* Tanggal Transaksi */}
+                    <div className="sm:col-span-3 text-xs text-slate-500 flex items-center gap-1">
+                      <Calendar size={13} className="text-slate-400 shrink-0" />
+                      <span>{formatTransactionDate(inv.transaction_date,{})}</span>
+                    </div>
+
+                    {/* Grand Total */}
+                    <div className="sm:col-span-3 sm:text-right font-mono font-bold text-slate-900 text-sm">
+                      {inv.grand_total != null
+                        ? formatCurrency(Number(inv.grand_total))
+                        : "—"}
+                    </div>
                   </Link>
+
+                  {/* Right Action & Soft Delete */}
+                  <div className="flex items-center gap-1 border-l border-slate-100 pl-2">
+                    <Link
+                      href={`/history/${inv.id}`}
+                      className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition-colors cursor-pointer"
+                      title="Lihat Detail"
+                    >
+                      <Eye size={18} />
+                    </Link>
+                    <SoftDeleteButton invoiceId={inv.id} />
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+        ) : (
+          /* Empty State */
+          <div className="py-12 text-center space-y-2">
+            <FileText size={36} className="mx-auto text-slate-300" />
+            <p className="text-sm font-semibold text-slate-700">
+              Data transaksi tidak ditemukan
+            </p>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              {q || template_id
+                ? "Coba ubah kata kunci pencarian atau filter yang kamu gunakan."
+                : "Belum ada transaksi yang disimpan. Buat transaksi pertama kamu sekarang."}
+            </p>
+          </div>
+        )}
+
+        {/* Paginasi Reusabel */}
+        <div className="p-4 bg-slate-50/50 border-t border-slate-100">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={PAGE_SIZE}
+          />
         </div>
-      )}
+      </div>
     </div>
   );
 }

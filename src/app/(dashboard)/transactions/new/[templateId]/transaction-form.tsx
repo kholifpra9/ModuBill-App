@@ -31,6 +31,7 @@ import {
   Printer,
   ArrowRight,
 } from "lucide-react";
+import { PrintButton } from "@/components/ui/print-button";
 
 type RowValues = Record<string, string>;
 type FormValues = {
@@ -352,14 +353,7 @@ export function TransactionForm({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               {/* Tombol Cetak */}
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl transition-colors cursor-pointer shadow-xs active:scale-95"
-              >
-                <Printer size={15} className="text-blue-600" />
-                <span>Cetak</span>
-              </button>
+              <PrintButton />
 
               {/* Tombol Bagikan Link / WA */}
               <ShareInvoiceButton
