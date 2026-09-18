@@ -1,6 +1,13 @@
 /**
  * Helper untuk memformat string tanggal dari database/form
  * agar tampilannya konsisten dan tidak tergeser oleh UTC offset browser.
+ *
+ * PENTING: default timeZone "UTC" di sini SENGAJA, nge-pair sama
+ * getNowISO() di transaction-form.tsx yang menyimpan angka waktu LOKAL
+ * browser (bukan UTC asli) berlabel UTC. Sudah divalidasi manual:
+ * tanpa "UTC" di sini, input jam 08:00 WIB tampil jadi ~01:00 di History
+ * (WIB = UTC+7, kegeser 7 jam). JANGAN ubah salah satu tanpa ubah
+ * satunya lagi.
  */
 export function formatTransactionDate(
   dateString: string | Date | null | undefined,

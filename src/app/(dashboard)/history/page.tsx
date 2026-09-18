@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SearchInput } from "@/components/ui/search-input";
@@ -7,6 +7,12 @@ import { Pagination } from "@/components/ui/pagination";
 import { SoftDeleteButton } from "./soft-delete-button";
 import { History, FileText, Calendar, Eye } from "lucide-react";
 import { formatTransactionDate } from "@/lib/utils/format-date";
+import { Suspense } from "react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "History",
+};
 
 interface HistoryPageProps {
   searchParams: Promise<{
@@ -51,38 +57,59 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
     value: t.id,
   }));
 
-  // 3. Construct Supabase Query untuk Table Invoices
-  let query = supabase
+  // 3. Hitung total dulu (query terpisah, TANPA .range()) — supaya query
+  // data (yang pakai range) tidak pernah dikirim dengan angka range yang
+  // sudah pasti tidak valid gara-gara currentPage kebesaran.
+  let countQuery = supabase
     .from("invoices")
-    .select("*, templates(name)", { count: "exact" })
+    .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
     .is("deleted_at", null);
 
-  // Apply Live Search (Invoice Number)
+  if (q && q.trim()) {
+    countQuery = countQuery.ilike("invoice_number", `%${q.trim()}%`);
+  }
+  if (template_id && template_id.trim()) {
+    countQuery = countQuery.eq("template_id", template_id);
+  }
+
+  const { count } = await countQuery;
+  const totalItems = count ?? 0;
+  const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+
+  if (totalPages > 0 && currentPage > totalPages) {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (template_id) params.set("template_id", template_id);
+    params.set("page", String(totalPages));
+    redirect(`/history?${params.toString()}`);
+  }
+
+  // 4. Baru fetch data beneran — di titik ini currentPage SUDAH DIJAMIN valid
+  // (kalau kebesaran, sudah keburu redirect di atas)
+  const from = (currentPage - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  let query = supabase
+    .from("invoices")
+    .select("*, templates(name)")
+    .eq("user_id", user.id)
+    .is("deleted_at", null);
+
   if (q && q.trim()) {
     query = query.ilike("invoice_number", `%${q.trim()}%`);
   }
-
-  // Apply Filter Template ID
   if (template_id && template_id.trim()) {
     query = query.eq("template_id", template_id);
   }
 
-  // Calculate Offset Pagination
-  const from = (currentPage - 1) * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
-
-  // Execute Query with Range Offset & Ordering
-  const { data: invoices, count, error } = await query
+  const { data: invoices, error } = await query
     .order("created_at", { ascending: false })
     .range(from, to);
 
   if (error) {
     console.error("Error fetching history invoices:", error.message);
   }
-
-  const totalItems = count ?? 0;
-  const totalPages = Math.ceil(totalItems / PAGE_SIZE);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -100,17 +127,16 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
       </div>
 
       {/* Control Bar: Live Search & Filter Template */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-3.5 border border-slate-200 rounded-2xl">
-        {/* Live Search berdasarkan Invoice Number */}
-        <SearchInput placeholder="Cari No. Invoice (mis: INV-2026...)" />
-
-        {/* Filter berdasarkan Template */}
-        <FilterSelect
-          options={filterOptions}
-          paramKey="template_id"
-          placeholder="Semua Template"
-        />
-      </div>
+      <Suspense fallback={<div className="h-[52px] bg-slate-50 border border-slate-200 rounded-2xl animate-pulse" />}>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-3.5 border border-slate-200 rounded-2xl">
+          <SearchInput placeholder="Cari No. Invoice (mis: INV-2026...)" />
+          <FilterSelect
+            options={filterOptions}
+            paramKey="template_id"
+            placeholder="Semua Template"
+          />
+        </div>
+      </Suspense>
 
       {/* Tabel/Daftar Transaksi (Sederhana Asli) */}
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
@@ -190,12 +216,14 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
 
         {/* Paginasi Reusabel */}
         <div className="p-4 bg-slate-50/50 border-t border-slate-100">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            pageSize={PAGE_SIZE}
-          />
+          <Suspense fallback={<div className="h-10" />}>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={PAGE_SIZE}
+            />
+          </Suspense>
         </div>
       </div>
     </div>
